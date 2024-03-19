@@ -31,6 +31,9 @@ $routes->set404Override();
 // route since we don't have to scan directories.
 $routes->get('/', 'Home::index');
 $routes->get('/PaymentController/authorization', 'PaymentController::authorization');
+$routes->get('/PaymentController/capture', 'PaymentController::capture');
+$routes->get('/PaymentController/refund', 'PaymentController::refund');
+$routes->get('/PaymentController/void', 'PaymentController::void');
 
 /*
  * --------------------------------------------------------------------
