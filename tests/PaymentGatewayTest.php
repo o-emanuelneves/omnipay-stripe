@@ -1,18 +1,19 @@
 <?php
 
 use App\Controllers\PaymentController;
+
+use Faker\Factory;
 use PHPUnit\Framework\TestCase;
 
 
 class PaymentGatewayTest extends TestCase
 {
-    
-    private $gateway;
     private $paymentController;
 
     protected function setUp(): void
     {
-        $this->paymentController = new PaymentController(); 
+        $this->paymentController = new PaymentController();
+
     }
 
     public function testAuthorization()
@@ -23,55 +24,55 @@ class PaymentGatewayTest extends TestCase
         $this->assertNotNull($response->getTransactionReference());
     }
 
-    // public function testPurchase()
-    // {
-    //     $authorizationResponse = $this->gateway->authorize([...]); // Preencha com os parâmetros necessários para a autorização
-    //     $this->assertTrue($authorizationResponse->isSuccessful());
+    public function testPurchase()
+    {
+        $authorizationResponse = $this->paymentController->authorization();
+        $this->assertTrue($authorizationResponse->isSuccessful());
 
-    //     $transactionReference = $authorizationResponse->getTransactionReference();
+        $transactionReference = $authorizationResponse->getTransactionReference();
+        $purchaseResponse = $this->paymentController->capture($transactionReference);
+        $this->assertTrue($purchaseResponse->isSuccessful());
+    }
 
-    //     $purchaseResponse = $this->gateway->purchase([
-    //         'transactionReference' => $transactionReference,
-    //         // outros parâmetros necessários para a compra
-    //     ])->send();
+    public function testRefund()
+    {
+        $authorizationResponse = $this->paymentController->authorization();
+        $this->assertTrue($authorizationResponse->isSuccessful());
 
-    //     $this->assertTrue($purchaseResponse->isSuccessful());
-    // }
+        $transactionReference = $authorizationResponse->getTransactionReference();
+        $refundResponse = $this->paymentController->refund($transactionReference);
+        $this->assertTrue($refundResponse->isSuccessful());
+    }
 
-    // public function testRefund()
-    // {
-    //     $authorizationResponse = $this->gateway->authorize([...]); // Preencha com os parâmetros necessários para a autorização
-    //     $this->assertTrue($authorizationResponse->isSuccessful());
+    public function testVoid()
+    {
+        $authorizationResponse = $this->paymentController->authorization();
+        $this->assertTrue($authorizationResponse->isSuccessful());
 
-    //     $transactionReference = $authorizationResponse->getTransactionReference();
+        $transactionReference = $authorizationResponse->getTransactionReference();
+        $voidResponse = $this->paymentController->void($transactionReference);
+        $this->assertTrue($voidResponse->isSuccessful());
+    }
 
-    //     $refundResponse = $this->gateway->refund([
-    //         'transactionReference' => $transactionReference,
-    //         // outros parâmetros necessários para o reembolso
-    //     ])->send();
+    public function testRefundWithWrongAuthorization()
+    {
+        $faker = Factory::create();
+        $transactionReference = $faker->uuid;
+        $refundResponse = $this->paymentController->refund($transactionReference);
+        $this->assertFalse($refundResponse == false);
+    }
 
-    //     $this->assertTrue($refundResponse->isSuccessful());
-    // }
+    public function testVoidWithWrongAuthorization()
+    {
+        $faker = Factory::create();
+        $transactionReference = $faker->uuid;
+        $voidResponse = $this->paymentController->void($transactionReference);
+        $this->assertFalse($voidResponse == false);
+    }
 
-    // public function testCancellation()
-    // {
-    //     $authorizationResponse = $this->gateway->authorize([...]); // Preencha com os parâmetros necessários para a autorização
-    //     $this->assertTrue($authorizationResponse->isSuccessful());
-
-    //     $transactionReference = $authorizationResponse->getTransactionReference();
-
-    //     $cancelResponse = $this->gateway->void([
-    //         'transactionReference' => $transactionReference,
-    //         // outros parâmetros necessários para o cancelamento
-    //     ])->send();
-
-    //     $this->assertTrue($cancelResponse->isSuccessful());
-    // }
-
-    // public function testFailedAuthorization()
-    // {
-    //     $response = $this->gateway->authorize([...]); // Preencha com parâmetros que devem resultar em uma falha de autorização
-
-    //     $this->assertFalse($response->isSuccessful());
-    // }
+    public function testAuthorizationFailed()
+    {
+        $voidResponse = $this->paymentController->void($transactionReference);
+        $this->assertFalse($voidResponse == false);
+    }
 }
