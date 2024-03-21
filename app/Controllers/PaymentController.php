@@ -15,63 +15,142 @@ class PaymentController extends BaseController
         $this->omniPay = new Omnipay();
         $this->gateway = $this->omniPay::create('Stripe');
         $this->apiKey = getenv('API_SECRET');
+        $this->gateway->setApiKey($this->apiKey);
     }
 
-    public function authorization()
+    public function authorization($mock)
     {
-        $this->gateway->setApiKey($this->apiKey);
-        $response = $this->gateway->authorize([
+        try {
+            $response = $this->gateway->authorize([
+                'amount' => $mock['amount'],
+                'currency' => $mock['currency'],
+                'token' => $mock['token'],
+            ])->send();
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+
+        return $response;
+    }
+
+    public function capture($mock)
+    {
+        try {
+            $response = $this->gateway->capture([
+                'amount' => $mock['amount'],
+                'transactionReference' => $mock['transactionReference']
+            ])->send();
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+
+        return $response;
+    }
+
+    public function refund($mock)
+    {
+        try {
+            $response = $this->gateway->refund([
+                'amount' => $mock['amount'],
+                'transactionReference' => $mock['transactionReference']
+            ])->send();
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+        return $response;
+    }
+
+    public function void($mock)
+    {
+       
+        try {
+            $response = $this->gateway->capture([
+                'transactionReference' => $mock['transactionReference']
+            ])->send();
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+
+        return $response;
+    }
+
+    public function getAuthorization()
+    {
+        $mock = [
             'amount' => '10.00',
             'currency' => 'USD',
             'token' => 'tok_visa',
-        ])->send();
+        ];
 
-        return $response;
-    }
+        $response = $this->authorization($mock);
 
-    public function capture($transactionReference)
-    {
-        $this->gateway->setApiKey($this->apiKey);
-        try {
-            $response = $this->gateway->capture([
-                'amount' => '10.00',
-                'transactionReference' =>  $transactionReference
-            ])->send();
-        } catch (\Throwable $th) {
-            $th->getMessage();
+        if ($response->isRedirect()) {
+            echo "Foi recebido um redirecinamento para o Gateway de pagamentos.";
+            $response->redirect();
+        } elseif ($response->isSuccessful()) {
+            echo "Autorização concluída com sucesso! A referência de transação é: {$response->getTransactionReference()}";
+        } else {
+            echo "A autorização falhou \n";
+            return $response->getMessage();
         }
-
-        return $response;
     }
-
-    public function refund($transactionReference)
+    
+    public function getCapture($transactionReference)
     {
-        $this->gateway->setApiKey($this->apiKey);
-        try {
-            $response = $this->gateway->refund([
-                'amount' => '10.00',
-                'transactionReference' =>  $transactionReference
-            ])->send();
-        } catch (\Throwable $th) {
-            echo $th->getMessage();
-            return false;
-        }
+        $mock = [
+            'amount' => '10.00',
+            'transactionReference' =>  $transactionReference
+        ];
 
-        return $response;
+        $response = $this->capture($mock);
+
+        if ($response->isRedirect()) {
+            echo "Foi recebido um redirecinamento para o Gateway de pagamentos.";
+            $response->redirect();
+        } elseif ($response->isSuccessful()) {
+            echo "Compra concluída com sucesso!";
+        } else {
+            echo "A autorização falhou \n";
+            return $response->getMessage();
+        }
     }
 
-
-    public function void($transactionReference)
+    public function getRefund($transactionReference)
     {
-        $this->gateway->setApiKey($this->apiKey);
-        try {
-            $response = $this->gateway->capture([
-                'transactionReference' =>  $transactionReference
-            ])->send();
-        } catch (\Throwable $th) {
-            $th->getMessage();
-        }
+        $mock = [
+            'amount' => '10.00',
+            'transactionReference' =>  $transactionReference
+        ];
 
-        return $response;
+        $response = $this->refund($mock);
+
+        if ($response->isRedirect()) {
+            echo "Foi recebido um redirecinamento para o Gateway de pagamentos.";
+            $response->redirect();
+        } elseif ($response->isSuccessful()) {
+            echo "Reembolso concluído com sucesso!";
+        } else {
+            echo "O Reembolso falhou \n";
+            return $response->getMessage();
+        }
     }
+
+    public function getVoid($transactionReference){
+        $mock = [
+            'transactionReference' =>  $transactionReference
+        ];
+
+        $response = $this->void($mock);
+
+        if ($response->isRedirect()) {
+            echo "Foi recebido um redirecinamento para o Gateway de pagamentos.";
+            $response->redirect();
+        } elseif ($response->isSuccessful()) {
+            echo "Cancelamento concluído com sucesso!";
+        } else {
+            echo "O cancelamento falhou \n";
+            return $response->getMessage();
+        }
+    }
+
 }

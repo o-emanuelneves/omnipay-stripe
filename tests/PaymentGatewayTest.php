@@ -13,66 +13,99 @@ class PaymentGatewayTest extends TestCase
     protected function setUp(): void
     {
         $this->paymentController = new PaymentController();
-
     }
 
     public function testAuthorization()
     {
-        $response = $this->paymentController->authorization();
+        $response = $this->paymentController->authorization([
+            'amount' => '10.00',
+            'currency' => 'USD',
+            'token' => 'tok_visa',
+        ]);
 
         $this->assertTrue($response->isSuccessful());
         $this->assertNotNull($response->getTransactionReference());
     }
 
-    public function testPurchase()
+    public function testCapture()
     {
-        $authorizationResponse = $this->paymentController->authorization();
+        $authorizationResponse = $this->paymentController->authorization([
+            'amount' => '15.00',
+            'currency' => 'BRL',
+            'token' => 'tok_visa',
+        ]);
         $this->assertTrue($authorizationResponse->isSuccessful());
 
         $transactionReference = $authorizationResponse->getTransactionReference();
-        $purchaseResponse = $this->paymentController->capture($transactionReference);
+
+        $purchaseResponse = $this->paymentController->capture([
+            'amount' => '10.00',
+            'transactionReference' =>  $transactionReference
+        ]);
         $this->assertTrue($purchaseResponse->isSuccessful());
     }
 
     public function testRefund()
     {
-        $authorizationResponse = $this->paymentController->authorization();
+        $authorizationResponse = $this->paymentController->authorization([
+            'amount' => '15.00',
+            'currency' => 'BRL',
+            'token' => 'tok_visa',
+        ]);
         $this->assertTrue($authorizationResponse->isSuccessful());
 
         $transactionReference = $authorizationResponse->getTransactionReference();
-        $refundResponse = $this->paymentController->refund($transactionReference);
-        $this->assertTrue($refundResponse->isSuccessful());
+
+        $purchaseResponse = $this->paymentController->refund([
+            'amount' => '15.00',
+            'transactionReference' =>  $transactionReference
+        ]);
+        $this->assertTrue($purchaseResponse->isSuccessful());
     }
+
 
     public function testVoid()
     {
-        $authorizationResponse = $this->paymentController->authorization();
+        $authorizationResponse = $this->paymentController->authorization([
+                    'amount' => '15.00',
+                    'currency' => 'BRL',
+                    'token' => 'tok_visa',
+                ]);
         $this->assertTrue($authorizationResponse->isSuccessful());
 
         $transactionReference = $authorizationResponse->getTransactionReference();
-        $voidResponse = $this->paymentController->void($transactionReference);
+        $voidResponse = $this->paymentController->void(['transactionReference' =>  $transactionReference]);
         $this->assertTrue($voidResponse->isSuccessful());
     }
 
     public function testRefundWithWrongAuthorization()
     {
         $faker = Factory::create();
-        $transactionReference = $faker->uuid;
+        $transactionReference = [
+            'transactionReference' => $faker->uuid
+        ];
         $refundResponse = $this->paymentController->refund($transactionReference);
-        $this->assertFalse($refundResponse == false);
+        $this->assertFalse($refundResponse->isSuccessful() || $refundResponse->isRedirect());
     }
 
     public function testVoidWithWrongAuthorization()
     {
         $faker = Factory::create();
-        $transactionReference = $faker->uuid;
+        $transactionReference = [
+            'transactionReference' => $faker->uuid
+        ];
         $voidResponse = $this->paymentController->void($transactionReference);
-        $this->assertFalse($voidResponse == false);
+        $this->assertFalse($voidResponse->isSuccessful() || $voidResponse->isRedirect());
     }
 
     public function testAuthorizationFailed()
     {
-        $voidResponse = $this->paymentController->void($transactionReference);
-        $this->assertFalse($voidResponse == false);
+        $mock = [
+            'amount' => '10.00',
+            'currency' => 'USD',
+            'token' => 'tokenInvalido',
+        ];
+        $authorizationResponse = $this->paymentController->authorization($mock);
+        $this->assertFalse($authorizationResponse->isSuccessful() || $authorizationResponse->isRedirect());
     }
 }

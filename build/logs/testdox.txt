@@ -1,8 +1,9 @@
 Payment Gateway
  [x] Authorization
- [x] Purchase
+ [x] Capture
  [x] Refund
  [x] Void
- [x] Refund with wrong authorization
+ [ ] Refund with wrong authorization
  [x] Void with wrong authorization
+ [x] Authorization failed
 
