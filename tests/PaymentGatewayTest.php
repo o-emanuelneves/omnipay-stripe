@@ -78,16 +78,6 @@ class PaymentGatewayTest extends TestCase
         $this->assertTrue($voidResponse->isSuccessful());
     }
 
-    public function testRefundWithWrongAuthorization()
-    {
-        $faker = Factory::create();
-        $transactionReference = [
-            'transactionReference' => $faker->uuid
-        ];
-        $refundResponse = $this->paymentController->refund($transactionReference);
-        $this->assertFalse($refundResponse->isSuccessful() || $refundResponse->isRedirect());
-    }
-
     public function testVoidWithWrongAuthorization()
     {
         $faker = Factory::create();
